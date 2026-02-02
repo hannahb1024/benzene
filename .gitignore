@@ -80,12 +80,12 @@ dist/
 
 # Next.js (if you switch later)
 .next/
-out/
 
 # Env files
 .env
 .env.*
 !.env.example
+!infra/.env.example
 
 ############################################
 # Capacitor / Mobile
@@ -168,3 +168,7 @@ coverage/
 !docker-compose.yml
 
 ## CSV itself
+csvs/
+
+## Keep schema/init SQL tracked
+!infra/database/pg-init.sql

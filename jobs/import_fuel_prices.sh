@@ -4,22 +4,35 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+if [[ -f "${ROOT_DIR}/infra/config.sh" ]]; then
+  # shellcheck source=/home/hannah/Documents/Projects/benzene/infra/config.sh
+  . "${ROOT_DIR}/infra/config.sh"
+fi
+
+CSV_DIR="${BENZENE_CSV_DIR:-${ROOT_DIR}/csvs}"
 CSV_PATH="${1:-}"
+
+if [[ -n "$CSV_PATH" && "$CSV_PATH" != /* && -f "${CSV_DIR}/${CSV_PATH}" ]]; then
+  CSV_PATH="${CSV_DIR}/${CSV_PATH}"
+fi
+
 if [[ -z "$CSV_PATH" ]]; then
-  CSV_PATH="$(ls -t "${ROOT_DIR}"/UpdatedFuelPrice-*.csv 2>/dev/null | head -n 1 || true)"
+  CSV_PATH="$(ls -t "${CSV_DIR}"/${BENZENE_CSV_PATTERN:-UpdatedFuelPrice-*.csv} 2>/dev/null | head -n 1 || true)"
 fi
 
 if [[ -z "$CSV_PATH" || ! -f "$CSV_PATH" ]]; then
-  echo "CSV file not found. Pass a path or place UpdatedFuelPrice-*.csv in project root." >&2
+  echo "CSV file not found. Pass a path or a filename in ${CSV_DIR}." >&2
   exit 1
 fi
-CSV_PATH="$(realpath "$CSV_PATH")"
 
-DB_URL="${DATABASE_URL:-postgresql://benzene:benzene@localhost:5432/benzene}"
+if command -v realpath >/dev/null 2>&1; then
+  CSV_PATH="$(realpath "$CSV_PATH")"
+fi
+
+DB_URL="${BENZENE_DB_URL:-${DATABASE_URL:-postgresql://benzene:benzene@localhost:5432/benzene}}"
 
 psql "$DB_URL" \
-  -v ON_ERROR_STOP=1 \
-  -v csv_path="$CSV_PATH" <<'SQL'
+  -v ON_ERROR_STOP=1 <<SQL
 BEGIN;
 
 DROP TABLE IF EXISTS stations_next;
@@ -87,8 +100,8 @@ CREATE TEMP TABLE stations_raw (
   amenity_customer_toilets text
 ) ON COMMIT DROP;
 
-\echo Using CSV :csv_path
-\copy stations_raw FROM :'csv_path' WITH (FORMAT csv, HEADER true)
+\echo Using CSV ${CSV_PATH}
+\copy stations_raw FROM '${CSV_PATH}' WITH (FORMAT csv, HEADER true)
 
 INSERT INTO stations_next (
   node_id,
@@ -155,8 +168,8 @@ SELECT
   CASE
     WHEN latest_update_timestamp <> '' THEN
       to_timestamp(
-        replace(latest_update_timestamp, ' (Coordinated Universal Time)', ''),
-        'Dy Mon DD YYYY HH24:MI:SS "GMT"OF'
+        split_part(latest_update_timestamp, ' GMT', 1),
+        'Dy Mon DD YYYY HH24:MI:SS'
       ) AT TIME ZONE 'UTC'
   END,
   NULLIF(mft_name, ''),
