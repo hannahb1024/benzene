@@ -4,7 +4,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-CSV_DIR="${CSV_DIR:-${ROOT_DIR}/csvs}"
+if [[ -f "${ROOT_DIR}/infra/config.sh" ]]; then
+  # shellcheck source=/home/hannah/Documents/Projects/benzene/infra/config.sh
+  . "${ROOT_DIR}/infra/config.sh"
+fi
+
+CSV_DIR="${BENZENE_CSV_DIR:-${ROOT_DIR}/csvs}"
 CSV_PATH="${1:-}"
 
 if [[ -n "$CSV_PATH" && "$CSV_PATH" != /* && -f "${CSV_DIR}/${CSV_PATH}" ]]; then
@@ -12,7 +17,7 @@ if [[ -n "$CSV_PATH" && "$CSV_PATH" != /* && -f "${CSV_DIR}/${CSV_PATH}" ]]; the
 fi
 
 if [[ -z "$CSV_PATH" ]]; then
-  CSV_PATH="$(ls -t "${CSV_DIR}"/UpdatedFuelPrice-*.csv 2>/dev/null | head -n 1 || true)"
+  CSV_PATH="$(ls -t "${CSV_DIR}"/${BENZENE_CSV_PATTERN:-UpdatedFuelPrice-*.csv} 2>/dev/null | head -n 1 || true)"
 fi
 
 if [[ -z "$CSV_PATH" || ! -f "$CSV_PATH" ]]; then
@@ -24,7 +29,7 @@ if command -v realpath >/dev/null 2>&1; then
   CSV_PATH="$(realpath "$CSV_PATH")"
 fi
 
-DB_URL="${DATABASE_URL:-postgresql://benzene:benzene@localhost:5432/benzene}"
+DB_URL="${BENZENE_DB_URL:-${DATABASE_URL:-postgresql://benzene:benzene@localhost:5432/benzene}}"
 
 psql "$DB_URL" \
   -v ON_ERROR_STOP=1 <<SQL

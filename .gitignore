@@ -85,6 +85,7 @@ dist/
 .env
 .env.*
 !.env.example
+!infra/.env.example
 
 ############################################
 # Capacitor / Mobile
@@ -166,6 +167,8 @@ coverage/
 !README.md
 !docker-compose.yml
 
-## CSVs
+## CSV itself
 csvs/
-*.csv
+
+## Keep schema/init SQL tracked
+!infra/database/pg-init.sql

@@ -1,19 +1,21 @@
 services:
   benzene-postgres:
     image: postgis/postgis:16-3.4
-    container_name: benzene-postgres
+    container_name: ${BENZENE_CONTAINER_NAME:-benzene-postgres}
+    env_file:
+      - ../.env
     environment:
-      POSTGRES_DB: benzene
-      POSTGRES_USER: benzene
-      POSTGRES_PASSWORD: benzene
+      POSTGRES_DB: ${POSTGRES_DB:-benzene}
+      POSTGRES_USER: ${POSTGRES_USER:-benzene}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-benzene}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "${BENZENE_PG_PORT_BIND:-127.0.0.1:5432:5432}"
     volumes:
       - benzene-pgdata:/var/lib/postgresql/data
-      - /csvs:/csvs:ro
+      - ${BENZENE_CSV_DIR_HOST:-../../csvs}:${BENZENE_CSV_DIR_CONTAINER:-/csvs}:ro
       - ./pg-init.sql:/docker-entrypoint-initdb.d/20_pg-init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U benzene"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-benzene}"]
       interval: 5s
       timeout: 5s
       retries: 5
