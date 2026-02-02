@@ -80,7 +80,6 @@ dist/
 
 # Next.js (if you switch later)
 .next/
-out/
 
 # Env files
 .env
@@ -167,4 +166,6 @@ coverage/
 !README.md
 !docker-compose.yml
 
-## CSV itself
+## CSVs
+csvs/
+*.csv
